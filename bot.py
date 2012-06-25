@@ -12,15 +12,6 @@ import sys
 
 ####
 
-def signal_handler(signal, frame):
-    if s:
-        write('QUIT ' + VERSION)
-        s.close()
-    printout('Exiting...')
-    sys.exit(0)
-
-####
-
 def get_config(key):
     return config.get('enigma-irc-bot', key)
 
@@ -116,6 +107,16 @@ def write(line, is_silent=False):
     s.sendall(line + '\r\n')
     return
 
+####
+
+def signal_handler(signal, frame):
+    close(config_fp)
+    if s:
+        write('QUIT ' + VERSION)
+        s.close()
+    printout('Exiting...')
+    sys.exit(0)
+
 #### Start
 
 VERSION  = 'EnigmaIRCb v0.1beta'
@@ -124,7 +125,8 @@ GREETING = 'Welcome to ' + VERSION + '!'
 signal.signal(signal.SIGINT, signal_handler)
 
 config = RawConfigParser()
-config.read('server.cfg')
+config_fp = open('server.cfg')
+config.readfp(config_fp)
 
 printout('='*len(GREETING))
 printout(GREETING)
