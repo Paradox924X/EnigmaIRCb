@@ -94,7 +94,7 @@ def user_join_channel(channel):
 
 ####
 
-def printout(line):
+def print_out(line):
     if get_config_bool('show_timestamps'):
         print '[' + str(datetime.datetime.now()) + '] ' + line
     else:
@@ -103,7 +103,7 @@ def printout(line):
 
 def write(line, is_silent=False):
     if not is_silent:
-        printout(line)
+        print_out(line)
     s.sendall(line + '\r\n')
     return
 
@@ -114,7 +114,7 @@ def signal_handler(signal, frame):
     if s:
         write('QUIT ' + VERSION)
         s.close()
-    printout('Exiting...')
+    print_out('Exiting...')
     sys.exit(0)
 
 #### Start
@@ -128,9 +128,9 @@ config = RawConfigParser()
 config_fp = open('server.cfg')
 config.readfp(config_fp)
 
-printout('='*len(GREETING))
-printout(GREETING)
-printout('='*len(GREETING))
+print_out('='*len(GREETING))
+print_out(GREETING)
+print_out('='*len(GREETING))
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((get_config('hostname'), get_config_int('port')))
@@ -141,7 +141,7 @@ if get_config_bool('use_ssl'):
 f = s.makefile()
 
 if s is None:
-    printout('Failed to connect to host (' + get_config('hostname') + ')')
+    print_out('Failed to connect to host (' + get_config('hostname') + ')')
     sys.exit(1)
 
 #### Registration
@@ -154,7 +154,7 @@ line = f.readline().rstrip()
 while line:
     message_parts = line.split(' ')
     if get_config_bool('show_motd') or len(message_parts) < 2 or message_parts[1] not in ['372','375','376']:
-        printout(line)
+        print_out(line)
     if message_parts[0] == 'PING':
         write('PONG ' + message_parts[1])
     elif len(message_parts) > 4 and message_parts[3] == ':PING':
@@ -197,5 +197,5 @@ while line:
 
     line = f.readline().rstrip()
 else:
-    printout('Connection closed')
+    print_out('Connection closed')
     s.close()
