@@ -20,16 +20,16 @@ def signal_handler(signal, frame):
     sys.exit(0)
 
 def get_config(key):
-    return parser.get('enigma-irc-bot', key)
+    return config.get('enigma-irc-bot', key)
 
 def get_config_bool(key):
-    return parser.getboolean('enigma-irc-bot', key)
+    return config.getboolean('enigma-irc-bot', key)
 
 def get_config_int(key):
-    return parser.getint('enigma-irc-bot', key)
+    return config.getint('enigma-irc-bot', key)
 
 def get_config_float(key):
-    return parser.getfloat('enigma-irc-bot', key)
+    return config.getfloat('enigma-irc-bot', key)
 
 def get_config_list(key):
     return get_config(key).split(',')
@@ -68,8 +68,9 @@ GREETING = 'Welcome to ' + VERSION + '!'
 
 signal.signal(signal.SIGINT, signal_handler)
 
-parser = SafeConfigParser()
-parser.read('server.cfg')
+config = SafeConfigParser()
+config.read('server.cfg')
+
 if get_config_bool('show_timestamps'):
     print '[' + str(datetime.datetime.now()) + '] ' + '='*len(GREETING)
     print '[' + str(datetime.datetime.now()) + '] ' + GREETING
@@ -112,9 +113,15 @@ while line:
     elif len(line.split(':')) > 2 and line.split(':')[2] == 'VERSION':
         write('NOTICE ' + get_nick(line) + ' :VERSION ' + VERSION + '')
     elif message_parts[1] == '001':
+        if get_config('password'):
+            write_s('PRIVMSG ' + get_config('nickserv') + ' IDENTIFY ' + get_config('password')) # Suppress
         write('MODE ' + get_config('nickname') + ' ' + get_config('usermodes'))
         for channel in get_config_list('channels'):
             write('JOIN ' + channel)
+#### User Commands
+    elif len(message_parts) > 3 and message_parts[3][1:] == '@version':
+        write('PRIVMSG ' + get_target(line) + ' :Version: ' + VERSION)
+
     line = f.readline().rstrip()
 else:
     if get_config_bool('show_timestamps'):
