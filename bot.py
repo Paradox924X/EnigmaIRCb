@@ -127,18 +127,19 @@ write('USER ' + get_config('nickname') + ' ' + get_config('nickname') + ' ' + ge
 
 line = f.readline().rstrip()
 while line:
-    if get_config_bool('show_timestamps'):
-        print '[' + str(datetime.datetime.now()) + '] ' + line
-    else:
-        print line
     message_parts = line.split(' ')
+    if get_config_bool('show_motd') or len(message_parts) < 2 or message_parts[1] not in ['372','375','376']:
+        if get_config_bool('show_timestamps'):
+            print '[' + str(datetime.datetime.now()) + '] ' + line
+        else:
+            print line
     if message_parts[0] == 'PING':
         write('PONG ' + message_parts[1])
     elif len(message_parts) > 4 and message_parts[3] == ':PING':
         send_notice(get_nick(line), 'PONG ' + message_parts[4])
     elif len(line.split(':')) > 2 and line.split(':')[2] == 'VERSION':
         send_notice(get_nick(line), 'VERSION ' + VERSION + '')
-    elif message_parts[1] == '001':
+    elif len(message_parts) > 1 and message_parts[1] == '001':
         user_identify()
         user_set_modes(get_config('usermodes'))
         for channel in get_config_list('channels'):
