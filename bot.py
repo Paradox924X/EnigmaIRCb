@@ -53,7 +53,8 @@ def get_target(line):
 
 def extract_command(line):
     global command
-    if len(message_parts) > 3 and message_parts[3][0] == get_config('command_symbol') and len(message_parts[3]) > 2:
+    message_parts = line.split(' ')
+    if len(message_parts) > 3 and message_parts[3][1] == get_config('command_prefix') and len(message_parts[3]) > 2:
         command = message_parts[3][2:]
     else:
         command = False
