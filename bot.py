@@ -34,34 +34,60 @@ def get_config_float(key):
 def get_config_list(key):
     return get_config(key).split(',')
 
-def write(msg):
-    if get_config_bool('show_timestamps'):
-        print '[' + str(datetime.datetime.now()) + '] ' + msg
-    else:
-        print msg
-    write_s(msg)
-    return
+def is_private(line):
+    return line.split(' ')[2] == get_config('nickname')
 
-def write_s(msg):
-    s.sendall(msg + '\r\n')
-    return
-
-def is_private(msg):
-    return msg.split(' ')[2] == get_config('nickname')
-
-def get_nick(msg):
+def get_nick(line):
     return line[1:].split('!')[0]
 
-def is_channel_msg(msg):
-    return -is_query(msg)
+def is_channel_msg(line):
+    return not is_query(line)
 
-def get_channel(msg):
-    return msg.split(' ')[2]
+def get_channel(line):
+    return line.split(' ')[2]
 
-def get_target(msg):
-    if is_private(msg):
-        return get_nick(msg)
-    return get_channel(msg)
+def get_target(line):
+    if is_private(line):
+        return get_nick(line)
+    return get_channel(line)
+
+def extract_command(line):
+    global command
+    if len(message_parts) > 3 and message_parts[3][0] == get_config('command_symbol') and len(message_parts[3]) > 2:
+        command = message_parts[3][2:]
+    else:
+        command = False
+    return command
+
+def write(line, is_silent=False):
+    if not is_silent:
+        if get_config_bool('show_timestamps'):
+            print '[' + str(datetime.datetime.now()) + '] ' + line
+        else:
+            print line
+    s.sendall(line + '\r\n')
+    return
+
+def send_privmsg(target, msg, is_silent=False):
+    write('PRIVMSG ' + target + ' :' + msg, is_silent)
+    return
+
+def send_notice(target, msg, is_silent=False):
+    write('NOTICE ' + target + ' :' + msg, is_silent)
+    return
+
+def user_identify():
+    if get_config('password'):
+        write('PRIVMSG ' + get_config('nickserv') + ' IDENTIFY ' + get_config('password'), True)
+    return
+
+def user_set_modes(modes):
+    write('MODE ' + get_config('nickname') + ' ' + modes)
+    return
+
+def user_join_channel(channel):
+    write('JOIN ' + channel)
+    return
 
 VERSION  = 'EnigmaIRCb v0.1beta'
 GREETING = 'Welcome to ' + VERSION + '!'
@@ -109,18 +135,18 @@ while line:
     if message_parts[0] == 'PING':
         write('PONG ' + message_parts[1])
     elif len(message_parts) > 4 and message_parts[3] == ':PING':
-        write('NOTICE ' + get_nick(line) + ' :PONG ' + message_parts[4])
+        send_notice(get_nick(line), 'PONG ' + message_parts[4])
     elif len(line.split(':')) > 2 and line.split(':')[2] == 'VERSION':
-        write('NOTICE ' + get_nick(line) + ' :VERSION ' + VERSION + '')
+        send_notice(get_nick(line), 'VERSION ' + VERSION + '')
     elif message_parts[1] == '001':
-        if get_config('password'):
-            write_s('PRIVMSG ' + get_config('nickserv') + ' IDENTIFY ' + get_config('password')) # Suppress
-        write('MODE ' + get_config('nickname') + ' ' + get_config('usermodes'))
+        user_identify()
+        user_set_modes(get_config('usermodes'))
         for channel in get_config_list('channels'):
-            write('JOIN ' + channel)
+            user_join_channel(channel)
 #### User Commands
-    elif len(message_parts) > 3 and message_parts[3][1:] == '@version':
-        write('PRIVMSG ' + get_target(line) + ' :Version: ' + VERSION)
+    elif extract_command(line):
+    	if command == 'version':
+            send_privmsg(get_target(line), 'Version: ' + VERSION)
 
     line = f.readline().rstrip()
 else:
