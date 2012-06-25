@@ -16,10 +16,7 @@ def signal_handler(signal, frame):
     if s:
         write('QUIT ' + VERSION)
         s.close()
-    if get_config_bool('show_timestamps'):
-        print '[' + str(datetime.datetime.now()) + '] ' + 'Exiting...'
-    else:
-        print 'Exiting...'
+    printout('Exiting...')
     sys.exit(0)
 
 ####
@@ -106,12 +103,16 @@ def user_join_channel(channel):
 
 ####
 
+def printout(line):
+    if get_config_bool('show_timestamps'):
+        print '[' + str(datetime.datetime.now()) + '] ' + line
+    else:
+        print line
+    return
+
 def write(line, is_silent=False):
     if not is_silent:
-        if get_config_bool('show_timestamps'):
-            print '[' + str(datetime.datetime.now()) + '] ' + line
-        else:
-            print line
+        printout(line)
     s.sendall(line + '\r\n')
     return
 
@@ -125,14 +126,9 @@ signal.signal(signal.SIGINT, signal_handler)
 config = RawConfigParser()
 config.read('server.cfg')
 
-if get_config_bool('show_timestamps'):
-    print '[' + str(datetime.datetime.now()) + '] ' + '='*len(GREETING)
-    print '[' + str(datetime.datetime.now()) + '] ' + GREETING
-    print '[' + str(datetime.datetime.now()) + '] ' + '='*len(GREETING)
-else:
-    print '='*len(GREETING)
-    print GREETING
-    print '='*len(GREETING)
+printout('='*len(GREETING))
+printout(GREETING)
+printout('='*len(GREETING))
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((get_config('hostname'), get_config_int('port')))
@@ -143,10 +139,7 @@ if get_config_bool('use_ssl'):
 f = s.makefile()
 
 if s is None:
-    if get_config_bool('show_timestamps'):
-        print '[' + str(datetime.datetime.now()) + '] ' + 'Failed to connect to host (' + get_config('hostname') + ')'
-    else:
-        print 'Failed to connect to host (' + get_config('hostname') + ')'
+    printout('Failed to connect to host (' + get_config('hostname') + ')')
     sys.exit(1)
 
 #### Registration
@@ -159,10 +152,7 @@ line = f.readline().rstrip()
 while line:
     message_parts = line.split(' ')
     if get_config_bool('show_motd') or len(message_parts) < 2 or message_parts[1] not in ['372','375','376']:
-        if get_config_bool('show_timestamps'):
-            print '[' + str(datetime.datetime.now()) + '] ' + line
-        else:
-            print line
+        printout(line)
     if message_parts[0] == 'PING':
         write('PONG ' + message_parts[1])
     elif len(message_parts) > 4 and message_parts[3] == ':PING':
@@ -205,8 +195,5 @@ while line:
 
     line = f.readline().rstrip()
 else:
-    if get_config_bool('show_timestamps'):
-        print '[' + str(datetime.datetime.now()) + '] ' + 'Connection closed'
-    else:
-        print 'Connection closed'
+    printout('Connection closed')
     s.close()
