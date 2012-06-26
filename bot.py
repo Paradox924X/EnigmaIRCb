@@ -12,20 +12,20 @@ import sys
 
 ####
 
-def get_config(key):
-    return config.get('enigma-irc-bot', key)
+def get_config(key, cfg=config):
+    return cfg.get('enigma-irc-bot', key)
 
-def get_config_bool(key):
-    return config.getboolean('enigma-irc-bot', key)
+def get_config_bool(key, cfg=config):
+    return cfg.getboolean('enigma-irc-bot', key)
 
-def get_config_int(key):
-    return config.getint('enigma-irc-bot', key)
+def get_config_int(key, cfg=config):
+    return cfg.getint('enigma-irc-bot', key)
 
-def get_config_float(key):
-    return config.getfloat('enigma-irc-bot', key)
+def get_config_float(key, cfg=config):
+    return cfg.getfloat('enigma-irc-bot', key)
 
-def get_config_list(key):
-    temp_list = get_config(key).split(',')
+def get_config_list(key, cfg=config):
+    temp_list = get_config(key, cfg).split(',')
     for index, entry in enumerate(temp_list):
         temp_list[index] = entry.strip()
     return temp_list
