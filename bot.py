@@ -25,7 +25,10 @@ def get_config_float(key):
     return config.getfloat('enigma-irc-bot', key)
 
 def get_config_list(key):
-    return get_config(key).split(',')
+    temp_list = get_config(key).split(',')
+    for index, entry in enumerate(temp_list):
+        temp_list[index] = entry.strip()
+    return temp_list
 
 ####
 
