@@ -110,7 +110,7 @@ def write(line, is_silent=False):
 ####
 
 def signal_handler(signal, frame):
-    close(config_fp)
+    config_fp.close()
     if s:
         write('QUIT ' + VERSION)
         s.close()
