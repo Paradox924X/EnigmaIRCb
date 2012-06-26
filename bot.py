@@ -125,7 +125,7 @@ GREETING = 'Welcome to ' + VERSION + '!'
 signal.signal(signal.SIGINT, signal_handler)
 
 config = RawConfigParser()
-config_fp = open('server.cfg')
+config_fp = open('bot.cfg')
 config.readfp(config_fp)
 
 print_out('='*len(GREETING))
