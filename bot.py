@@ -254,6 +254,8 @@ while line:
         for channel, users in channel_users.iteritems():
             if nick in users:
                 channel_users[channel].remove(nick)
+        if nick in authed_users:
+            authed_users.remove(nick)
 #### NickServ Messages
     elif extract_nick(line) == get_config('nickserv'):
         if message_parts[1] == 'NOTICE' and message_parts[3][1:] == 'STATUS':
