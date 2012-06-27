@@ -322,7 +322,7 @@ while line:
         elif command == 'commands':
             commands_sorted = commands
             commands_sorted.sort()
-            send_privmsg(target, 'Commands: ' + ', '.join(commands_sorted))
+            send_privmsg(target, 'Commands: ' + get_config('command_prefix') + (', ' + get_config('command_prefix')).join(commands_sorted))
         elif command == 'deauth':
             nick = extract_nick(line)
             if user_deauth(nick):
