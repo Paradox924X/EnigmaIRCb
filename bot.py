@@ -248,14 +248,22 @@ while line:
         else:
             channel_users[channel].append(nick)
     elif len(message_parts) > 2 and message_parts[1] == 'PART':
-        channel_users[message_parts[2]].remove(extract_nick(line))
+        nick = extract_nick(line)
+        channel_users[message_parts[2]].remove(nick)
+        if nick in authed_users:
+            for channel, users in channel_users.iteritems():
+                if nick in users:
+                    break
+            else:
+                if user_deauth(nick):
+                    send_notice(nick, 'You have been deauthenticated.')
     elif len(message_parts) > 1 and message_parts[1] == 'QUIT':
         nick = extract_nick(line)
         for channel, users in channel_users.iteritems():
             if nick in users:
                 channel_users[channel].remove(nick)
         if nick in authed_users:
-            authed_users.remove(nick)
+            user_deauth(nick)
 #### NickServ Messages
     elif extract_nick(line) == get_config('nickserv'):
         if message_parts[1] == 'NOTICE' and message_parts[3][1:] == 'STATUS':
