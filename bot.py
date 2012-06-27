@@ -199,7 +199,7 @@ for command_groups_index, command_groups in enumerate(command_groups_list):
     for command_group_index, command_group in enumerate(command_groups):
         command_group = command_group.strip()
         command_groups[command_group_index] = command_group
-        if command_group not in groups and command_group is not '?' and command_group is not '*':
+        if command_group not in groups and command_group is not '*':
             print_out("FATAL ERROR: Unrecognized group '" + command_group + "' specified for command '" + commands[command_groups_list.index(command_groups)] + "'")
             command_config.close()
             user_config.close()
