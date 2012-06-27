@@ -317,7 +317,10 @@ while line:
     elif extract_command(line) and user_check_auth(extract_nick(line), command):
         target = extract_target(line)
         if command == 'auth':
-            if not user_request_auth(extract_nick(line)):
+            nick = extract_nick(line)
+            if nick not in users:
+                send_notice(nick, 'Your nick is not on the auth list.')
+            elif not user_request_auth(nick):
                 send_notice(nick, 'You are already authenticated.')
         elif command == 'commands':
             commands_sorted = commands
