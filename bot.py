@@ -350,3 +350,4 @@ while line:
 else:
     print_out('Connection closed')
     s.close()
+    bot_quit()
