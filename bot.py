@@ -90,18 +90,20 @@ def send_notice(target, msg, is_silent=False):
 
 ####
 
-def user_identify():
+def bot_identify():
     if get_config('password'):
         write('PRIVMSG ' + get_config('nickserv') + ' IDENTIFY ' + get_config('password'), True)
     return
 
-def user_set_modes(modes):
+def bot_set_modes(modes):
     write('MODE ' + get_config('nickname') + ' ' + modes)
     return
 
-def user_join_channel(channel):
+def bot_join_channel(channel):
     write('JOIN ' + channel)
     return
+
+####
 
 def user_request_auth(user):
     if user not in authed_users:
@@ -276,10 +278,10 @@ while line:
 #### Server Messages
     elif extract_reply_code(line):
         if reply_code == 1:
-            user_identify()
-            user_set_modes(get_config('usermodes'))
+            bot_identify()
+            bot_set_modes(get_config('usermodes'))
             for channel in get_config_list('channels'):
-                user_join_channel(channel)
+                bot_join_channel(channel)
         elif reply_code == 353:
             channel = message_parts[4]
             for nick in line.split(':', 2)[2].split(' '):
