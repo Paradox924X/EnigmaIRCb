@@ -323,7 +323,7 @@ while line:
             elif not user_request_auth(nick):
                 send_notice(nick, 'You are already authenticated.')
         elif command == 'commands':
-            commands_sorted = commands
+            commands_sorted = commands[:]
             commands_sorted.sort()
             send_privmsg(target, 'Commands: ' + get_config('command_prefix') + (', ' + get_config('command_prefix')).join(commands_sorted))
         elif command == 'deauth':
