@@ -103,6 +103,22 @@ def bot_join_channel(channel):
     write('JOIN ' + channel)
     return
 
+def bot_part_channel(channel):
+    for user in channel_users[channel]:
+        event_user_part(channel, user)
+    write('PART ' + channel)
+    return
+
+def bot_quit():
+    command_config_fp.close()
+    user_config_fp.close()
+    config_fp.close()
+    if s:
+        write('QUIT ' + VERSION)
+        s.close()
+    print_out('Exiting...')
+    sys.exit(0)
+
 ####
 
 def user_request_auth(user):
@@ -139,6 +155,37 @@ def user_check_auth(user, command):
 
 ####
 
+def event_user_join(channel, user):
+    global channel_users
+    if is_my_nick(user):
+        channel_users[channel] = []
+    else:
+        channel_users[channel].append(user)
+    return
+
+def event_user_part(channel, user):
+    if is_my_nick(user):
+        return
+    channel_users[channel].remove(user)
+    if user in authed_users:
+        for channel, users in channel_users.iteritems():
+            if user in users:
+                break
+        else:
+            if user_deauth(user):
+                send_notice(user, 'You have been deauthenticated.')
+    return
+
+def event_user_quit(user):
+    for channel, users in channel_users.iteritems():
+        if user in users:
+            channel_users[channel].remove(user)
+    if user in authed_users:
+        user_deauth(user)
+    return
+
+####
+
 def print_out(line):
     if get_config_bool('show_timestamps'):
         print '[' + str(datetime.datetime.now()) + '] ' + line
@@ -155,14 +202,7 @@ def write(line, is_silent=False):
 ####
 
 def signal_handler(signal, frame):
-    command_config_fp.close()
-    user_config_fp.close()
-    config_fp.close()
-    if s:
-        write('QUIT ' + VERSION)
-        s.close()
-    print_out('Exiting...')
-    sys.exit(0)
+    bot_quit()
 
 #### Start
 
@@ -242,30 +282,13 @@ while line:
         send_notice(extract_nick(line), 'PONG ' + message_parts[4])
     elif len(line.split(':')) > 2 and line.split(':')[2] == 'VERSION':
         send_notice(extract_nick(line), 'VERSION ' + VERSION + '')
+#### Events
     elif len(message_parts) > 2 and message_parts[1] == 'JOIN':
-        nick = extract_nick(line)
-        channel = message_parts[2][1:].lower()
-        if is_my_nick(nick):
-            channel_users[channel] = []
-        else:
-            channel_users[channel].append(nick)
+        event_user_join(message_parts[2][1:].lower(), extract_nick(line))
     elif len(message_parts) > 2 and message_parts[1] == 'PART':
-        nick = extract_nick(line)
-        channel_users[message_parts[2]].remove(nick)
-        if nick in authed_users:
-            for channel, users in channel_users.iteritems():
-                if nick in users:
-                    break
-            else:
-                if user_deauth(nick):
-                    send_notice(nick, 'You have been deauthenticated.')
+        event_user_part(message_parts[2][1:].lower(), extract_nick(line))
     elif len(message_parts) > 1 and message_parts[1] == 'QUIT':
-        nick = extract_nick(line)
-        for channel, users in channel_users.iteritems():
-            if nick in users:
-                channel_users[channel].remove(nick)
-        if nick in authed_users:
-            user_deauth(nick)
+        event_user_quit(extract_nick(line))
 #### NickServ Messages
     elif extract_nick(line) == get_config('nickserv'):
         if message_parts[1] == 'NOTICE' and message_parts[3][1:] == 'STATUS':
@@ -292,21 +315,36 @@ while line:
             channel_users[channel].sort()
 #### User Commands
     elif extract_command(line) and user_check_auth(extract_nick(line), command):
+        target = extract_target(line)
         if command == 'auth':
             if not user_request_auth(extract_nick(line)):
                 send_notice(nick, 'You are already authenticated.')
         elif command == 'commands':
             commands_sorted = commands
             commands_sorted.sort()
-            send_privmsg(extract_target(line), 'Commands: ' + ', '.join(commands_sorted))
+            send_privmsg(target, 'Commands: ' + ', '.join(commands_sorted))
         elif command == 'deauth':
             nick = extract_nick(line)
             if user_deauth(nick):
                 send_notice(nick, 'You have been successfully deauthenticated.')
             else:
                 send_notice(nick, 'You are not authenticated.')
+        elif command == 'join':
+            if len(message_parts) > 4 and message_parts[4][0] == '#':
+                bot_join_channel(message_parts[4])
+            else:
+                send_privmsg(target, 'Invalid Usage. Please specify a valid channel to join.')
+        elif command == 'part':
+            if len(message_parts) > 4 and message_parts[4] in channel_users.iteritems()[0]:
+                bot_part_channel(message_parts[4])
+            elif is_channel_msg(line):
+                bot_part_channel(target)
+            else:
+                send_privmsg(target, 'Invalid Usage. Please specify a valid channel to part.')
+        elif command == 'quit':
+            bot_quit()
         elif command == 'version':
-            send_privmsg(extract_target(line), 'Version: ' + VERSION)
+            send_privmsg(target, 'Version: ' + VERSION)
 
     line = f.readline().rstrip()
 else:
