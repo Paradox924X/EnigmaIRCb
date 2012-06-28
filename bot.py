@@ -123,6 +123,40 @@ def bot_quit(exit_code = 0):
 
 ####
 
+def definitions_getdef(title):
+    row = db_connection.execute('SELECT definition_title, definition_text FROM definitions WHERE definition_title = ?', [title]).fetchone()
+    if row:
+        db_connection.execute('UPDATE definitions SET definition_hits = definition_hits + 1 WHERE definition_title = ?', [row[0]])
+        send_privmsg(target, '' + row[0] + ': ' + row[1])
+    else:
+        send_privmsg(target, 'No definition found.')
+    return
+
+def definitions_setdef(title, author, text):
+    db_connection.execute(
+        "INSERT OR REPLACE INTO definitions (definition_title, definition_author, definition_text, definition_date) "
+        "VALUES (?, ?, ?, datetime('now', 'localtime'))", [title, author, text]
+    )
+    send_privmsg(target, 'Definition set.')
+    return
+
+def definitions_undef(title):
+    if db_connection.execute('DELETE FROM definitions WHERE definition_title = ?', [title]).rowcount > 0:
+        send_privmsg(target, '' + title + ' undefined.')
+    else:
+        send_privmsg(target, 'No definition found.')
+    return
+
+def definitions_whodef(title):
+    row = db_connection.execute("SELECT definition_title, definition_author, definition_date, definition_hits FROM definitions WHERE definition_title = ?", [title]).fetchone()
+    if row:
+        send_privmsg(target, '' + row[0] + ' defined by ' + row[1] + ' on ' + row[2] + '. ' + str(row[3]) + ' hits.')
+    else:
+        send_privmsg(target, 'No definition found.')
+    return
+
+####
+
 def user_request_auth(user):
     if user not in authed_users:
         send_privmsg(get_config('nickserv'), 'STATUS ' + user)
@@ -223,7 +257,7 @@ user_config.readfp(user_config_fp)
 command_config_fp = open(get_config('command_config'))
 command_config.readfp(command_config_fp)
 
-db_connection = sqlite3.connect(get_config('sqlite_db'))
+db_connection = sqlite3.connect(get_config('sqlite_db'), detect_types=sqlite3.PARSE_DECLTYPES, isolation_level=None)
 
 users = []
 authed_users = []
@@ -333,6 +367,12 @@ while line:
                 send_notice(nick, 'You have been successfully deauthenticated.')
             else:
                 send_notice(nick, 'You are not authenticated.')
+        elif command == 'getdef':
+            if (get_config_bool('enable_definitions')):
+                if len(message_parts) > 4:
+                    definitions_getdef(message_parts[4])
+                else:
+                    send_privmsg(target, 'Invalid Usage. Please specify a word to define.')
         elif command == 'join':
             if len(message_parts) > 4 and message_parts[4][0] == '#':
                 bot_join_channel(message_parts[4])
@@ -347,8 +387,26 @@ while line:
                 send_privmsg(target, 'Invalid Usage. Please specify a valid channel to part.')
         elif command == 'quit':
             bot_quit()
+        elif command == 'setdef':
+            if (get_config_bool('enable_definitions')):
+                if len(message_parts) > 5:
+                    definitions_setdef(message_parts[4], extract_nick(line), ' '.join(message_parts[5:]))
+                else:
+                    send_privmsg(target, 'Invalid Usage. Please specify a word and corresponding definition.')
+        elif command == 'undef':
+            if (get_config_bool('enable_definitions')):
+                if len(message_parts) > 4:
+                    definitions_undef(message_parts[4])
+                else:
+                    send_privmsg(target, 'Invalid Usage. Please specify a word to undefine.')
         elif command == 'version':
             send_privmsg(target, 'Version: ' + VERSION)
+        elif command == 'whodef':
+            if (get_config_bool('enable_definitions')):
+                if len(message_parts) > 4:
+                    definitions_whodef(message_parts[4])
+                else:
+                    send_privmsg(target, 'Invalid Usage. Please specify a word to query definition information on.')
 
     line = f.readline().rstrip()
 else:
