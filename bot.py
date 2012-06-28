@@ -1,6 +1,8 @@
 #!/usr/bin/python
+# coding: utf-8
 # Author: Nikunj Mehta
 
+import BeautifulSoup
 from ConfigParser import RawConfigParser
 import datetime
 import re
@@ -10,6 +12,7 @@ import sqlite3
 import ssl
 import string
 import sys
+import urllib2
 
 ####
 
@@ -40,10 +43,10 @@ def get_config_list(key, cfg=config):
 ####
 
 def is_private_msg(line):
-    return is_my_nick(line.split(' ')[2])
+    return len(line.split(' ')) > 2 and is_my_nick(line.split(' ')[2])
 
 def is_channel_msg(line):
-    return not is_private_msg(line)
+    return len(line.split(' ')) > 2 and line.split(' ')[2][0] == '#'
 
 def is_my_nick(nick):
     return nick is not None and nick == get_config('nickname')
@@ -242,7 +245,7 @@ def signal_handler(signal, frame):
 
 #### Start
 
-VERSION          = 'EnigmaIRCb v0.3beta'
+VERSION          = 'EnigmaIRCb v0.4beta'
 GREETING         = 'Welcome to ' + VERSION + '!'
 CONFIG_FILE_NAME = 'bot.cfg'
 
@@ -283,6 +286,10 @@ for command_groups_index, command_groups in enumerate(command_groups_list):
             print_out("FATAL ERROR: Unrecognized group '" + command_group + "' specified for command '" + commands[command_groups_list.index(command_groups)] + "'")
             bot_quit(1)
     command_groups_list[command_groups_index] = command_groups
+
+should_catch_urls = get_config_bool('enable_url_catch')
+url_fetch_timeout = get_config_int('url_fetch_timeout')
+max_urls_to_catch = get_config_int('max_urls_to_catch')
 
 print_out('='*len(GREETING))
 print_out(GREETING)
@@ -407,6 +414,14 @@ while line:
                     definitions_whodef(message_parts[4])
                 else:
                     send_privmsg(target, 'Invalid Usage. Please specify a word to query definition information on.')
+
+    if should_catch_urls and len(message_parts) > 3 and is_channel_msg(line):
+        target = extract_target(line)
+        for url in re.findall("""(?:https?://w{2,3}\d{0,3}?|https?://|w{2,3}\d{0,3}?)\.[a-z-_]+\..{2,4}[^ ]+?""", ' '.join(message_parts[3:])[1:], re.IGNORECASE)[:max_urls_to_catch]:
+            try:
+                send_privmsg(target, "" + url + " - " + BeautifulSoup.BeautifulSoup(urllib2.urlopen(url if url[:4] == 'http' else 'http://' + url, None, url_fetch_timeout)).title.string)
+            except urllib2.URLError:
+                pass
 
     line = f.readline().rstrip()
 else:
