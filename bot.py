@@ -6,14 +6,15 @@ import datetime
 import re
 import signal
 import socket
+import sqlite3
 import ssl
 import string
 import sys
 
 ####
 
-config = RawConfigParser()
-user_config = RawConfigParser()
+config         = RawConfigParser()
+user_config    = RawConfigParser()
 command_config = RawConfigParser()
 
 ####
@@ -109,7 +110,8 @@ def bot_part_channel(channel):
     write('PART ' + channel)
     return
 
-def bot_quit():
+def bot_quit(exit_code = 0):
+    db_connection.close()
     command_config_fp.close()
     user_config_fp.close()
     config_fp.close()
@@ -117,7 +119,7 @@ def bot_quit():
         write('QUIT ' + VERSION)
         s.close()
     print_out('Exiting...')
-    sys.exit(0)
+    sys.exit(exit_code)
 
 ####
 
@@ -206,7 +208,7 @@ def signal_handler(signal, frame):
 
 #### Start
 
-VERSION          = 'EnigmaIRCb v0.2beta'
+VERSION          = 'EnigmaIRCb v0.3beta'
 GREETING         = 'Welcome to ' + VERSION + '!'
 CONFIG_FILE_NAME = 'bot.cfg'
 
@@ -220,6 +222,8 @@ user_config.readfp(user_config_fp)
 
 command_config_fp = open(get_config('command_config'))
 command_config.readfp(command_config_fp)
+
+db_connection = sqlite3.connect(get_config('sqlite_db'))
 
 users = []
 authed_users = []
@@ -243,10 +247,7 @@ for command_groups_index, command_groups in enumerate(command_groups_list):
         command_groups[command_group_index] = command_group
         if command_group not in groups and command_group is not '*':
             print_out("FATAL ERROR: Unrecognized group '" + command_group + "' specified for command '" + commands[command_groups_list.index(command_groups)] + "'")
-            command_config.close()
-            user_config.close()
-            config.close()
-            sys.exit(1)
+            bot_quit(1)
     command_groups_list[command_groups_index] = command_groups
 
 print_out('='*len(GREETING))
